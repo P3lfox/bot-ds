@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { T } from '../texts.js';
 
 export const SquadStatus = Object.freeze({
   OPEN: 'open',
@@ -42,10 +43,10 @@ export class SquadManager {
 
   create({ game, capacity, creatorId, creatorName, voiceChannelId = null, minPlayers = null }) {
     if (capacity !== null && (!Number.isInteger(capacity) || capacity < 2)) {
-      throw new SquadError('INVALID_CAPACITY', 'El cupo tiene que ser un número entero mayor o igual a 2.');
+      throw new SquadError('INVALID_CAPACITY', T.errors.invalidCapacity);
     }
     if (minPlayers !== null && (capacity === null || minPlayers < 2 || minPlayers >= capacity)) {
-      throw new SquadError('INVALID_MIN_PLAYERS', 'El mínimo de jugadores tiene que ser al menos 2 y menor que el cupo.');
+      throw new SquadError('INVALID_MIN_PLAYERS', T.errors.invalidMinPlayers);
     }
     const squad = {
       id: randomUUID(),
@@ -101,7 +102,7 @@ export class SquadManager {
   join(id, userId, name) {
     const squad = this.#require(id);
     if (squad.members.has(userId)) {
-      throw new SquadError('ALREADY_JOINED', 'Ya estás anotado en esta squad.');
+      throw new SquadError('ALREADY_JOINED', T.errors.alreadyJoined);
     }
     squad.members.set(userId, name);
     const completed = squad.capacity !== null && squad.members.size >= squad.capacity;
@@ -115,10 +116,10 @@ export class SquadManager {
   leave(id, userId) {
     const squad = this.#require(id);
     if (userId === squad.creatorId) {
-      throw new SquadError('CREATOR_CANNOT_LEAVE', 'Sos el creador: si no vas a jugar, usá "Cancelar".');
+      throw new SquadError('CREATOR_CANNOT_LEAVE', T.errors.creatorCannotLeave);
     }
     if (!squad.members.has(userId)) {
-      throw new SquadError('NOT_JOINED', 'No estás anotado en esta squad.');
+      throw new SquadError('NOT_JOINED', T.errors.notJoined);
     }
     squad.members.delete(userId);
     if (!this.isReady(squad)) squad.readyAnnounced = false;
@@ -128,7 +129,7 @@ export class SquadManager {
   cancel(id, userId) {
     const squad = this.#require(id);
     if (userId !== squad.creatorId) {
-      throw new SquadError('NOT_CREATOR', 'Solo quien creó la squad puede cancelarla.');
+      throw new SquadError('NOT_CREATOR', T.errors.notCreator);
     }
     this.#finish(squad, SquadStatus.CANCELLED);
     return squad;
@@ -158,7 +159,7 @@ export class SquadManager {
   #require(id) {
     const squad = this.#squads.get(id);
     if (!squad || squad.status !== SquadStatus.OPEN) {
-      throw new SquadError('NOT_FOUND', 'Esta squad ya no está activa.');
+      throw new SquadError('NOT_FOUND', T.errors.notFound);
     }
     return squad;
   }

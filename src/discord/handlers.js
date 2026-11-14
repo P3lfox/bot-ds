@@ -1,5 +1,6 @@
 import { AttachmentBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { resolveGame } from '../squads/games.js';
+import { casual, fill, say, T } from '../texts.js';
 import { SquadError } from '../squads/squadManager.js';
 import { formatDuration } from '../squads/messages.js';
 import { WhatsAppUnavailableError } from '../whatsapp/errors.js';
@@ -43,7 +44,7 @@ export function createHandlers({ manager, notifier, whatsapp }) {
   async function announceCompletion(squad, send) {
     const ids = [...squad.members.keys()];
     await send({
-      content: `¡Squad completa para **${squad.game}**! ${ids.map((id) => `<@${id}>`).join(' ')} ¡a jugar!`,
+      content: say(T.completed, { game: squad.game.toLowerCase(), mentions: ids.map((id) => `<@${id}>`).join(' ') }),
       allowedMentions: { users: ids },
     });
     return notifier.notifyCompleted(squad);
@@ -55,19 +56,24 @@ export function createHandlers({ manager, notifier, whatsapp }) {
       const ids = [...squad.members.keys()];
       const left = squad.capacity - ids.length;
       await send({
-        content: `¡Ya son ${ids.length} para **${squad.game}**! ${ids.map((id) => `<@${id}>`).join(' ')} ya pueden jugar. Queda${left === 1 ? '' : 'n'} ${left} lugar${left === 1 ? '' : 'es'} por si se suma alguien más.`,
+        content: say(T.ready, {
+          count: ids.length,
+          game: squad.game.toLowerCase(),
+          mentions: ids.map((id) => `<@${id}>`).join(' '),
+          left: left === 1 ? T.readyLeftOne : fill(T.readyLeftMany, { left }),
+        }),
         allowedMentions: { users: ids },
       });
     }
     if (completed) {
       const result = await announceCompletion(squad, send);
-      if (!result.ok) await warn(`No se pudo avisar por WhatsApp que la squad se completó: ${result.message}`);
+      if (!result.ok) await warn(fill(T.completedNotifyFail, { reason: result.message }));
     }
   }
 
   async function handleSquadCommand(interaction) {
     const typed = interaction.options.getString('juego', true).trim();
-    if (!typed) return replyEphemeral(interaction, 'Tenés que indicar un juego.');
+    if (!typed) return replyEphemeral(interaction, T.noGame);
     const { name, capacity, minPlayers } = resolveGame(typed);
 
     const voiceChannel = interaction.member?.voice?.channel ?? null;
@@ -144,20 +150,20 @@ export function createHandlers({ manager, notifier, whatsapp }) {
 
   async function handleNotify(interaction, squadId) {
     const squad = manager.get(squadId);
-    if (!squad) throw new SquadError('NOT_FOUND', 'Esta squad ya no está activa.');
+    if (!squad) throw new SquadError('NOT_FOUND', T.errors.notFound);
 
     const remaining = manager.cooldownRemaining(squad);
     if (remaining > 0) {
-      return replyEphemeral(interaction, `Ya se avisó hace poco. Podés volver a avisar en ${formatDuration(remaining)}.`);
+      return replyEphemeral(interaction, say(T.cooldown, { time: formatDuration(remaining) }));
     }
 
     await interaction.deferReply({ flags: EPHEMERAL });
     const result = await notifier.notifyMissing(squad);
-    if (result.ok) return replyEphemeral(interaction, 'Listo, avisé al grupo de WhatsApp.');
+    if (result.ok) return replyEphemeral(interaction, say(T.notifyOk));
     if (result.reason === 'cooldown') {
-      return replyEphemeral(interaction, `Ya se avisó hace poco. Podés volver a avisar en ${formatDuration(result.remainingMs)}.`);
+      return replyEphemeral(interaction, say(T.cooldown, { time: formatDuration(result.remainingMs) }));
     }
-    return replyEphemeral(interaction, `No se pudo enviar el aviso por WhatsApp: ${result.message}`);
+    return replyEphemeral(interaction, fill(T.notifyFail, { reason: result.message }));
   }
 
   const buttonHandlers = {
@@ -173,7 +179,7 @@ export function createHandlers({ manager, notifier, whatsapp }) {
     try {
       await buttonHandlers[parsed.action](interaction, parsed.squadId);
     } catch (err) {
-      if (err instanceof SquadError) return replyEphemeral(interaction, err.message);
+      if (err instanceof SquadError) return replyEphemeral(interaction, casual(err.message));
       throw err;
     }
   }
@@ -213,7 +219,7 @@ export function createHandlers({ manager, notifier, whatsapp }) {
       }
     } catch (err) {
       console.error('[discord] Error manejando la interacción:', err);
-      if (interaction.isRepliable()) await replyEphemeral(interaction, 'Ocurrió un error inesperado. Probá de nuevo en un rato.');
+      if (interaction.isRepliable()) await replyEphemeral(interaction, say(T.unexpected));
     }
   }
 

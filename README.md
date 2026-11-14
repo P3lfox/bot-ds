@@ -14,23 +14,27 @@ Bot de Discord que arma squads para jugar con `/squad` y avisa a un grupo de Wha
 | `/squad juego:<texto>` | Publica la squad. El cupo sale del juego (`valo` → Valorant, 5; `fortnite` → 4; ver abajo). El creador queda anotado. |
 | Creador en un canal de voz | Quienes ya están en ese canal quedan anotados, y quien entre mientras la squad está abierta también. Salir del canal no da de baja. |
 | **Me sumo / Me bajo** | Actualiza el embed. El creador no puede bajarse: usa **Cancelar**. |
-| **Avisar por WhatsApp** | Manda al grupo: `Faltan X para la squad de {juego}. Están: {nombres}. Sumate en Discord: {link}`. Cooldown de 10 minutos por squad. |
+| **Avisar por WhatsApp** | Manda al grupo: `y diái? faltan X pa la squad de {juego}. ya están: {nombres}. sumate en discord: {link}`. Cooldown de 10 minutos por squad. |
 | **Cancelar** | Solo el creador. Desactiva los botones. |
 | Cupo completo | Menciona a todos, desactiva los botones y manda un único aviso de "squad completa" al grupo. |
 | A los 5 minutos | Si todavía falta gente y no hay cooldown activo, avisa automáticamente por WhatsApp. |
 | A los 30 minutos | Si no se completó, expira y se desactivan los botones. |
-| Respuesta en WhatsApp | Si alguien **responde** (con *Responder*) a un aviso del bot en el grupo, el mensaje aparece en Discord como respuesta a la squad, con una etiqueta según lo que dijo: `✅ Juan viene`, `🕒 Juan viene más tarde, en ~20 min`, `❌ Juan no viene` o `💬 Juan` si no se entiende. Siempre se muestra el texto original. Los demás mensajes del grupo se ignoran. |
+| Respuesta en WhatsApp | Si alguien **responde** (con *Responder*) a un aviso del bot en el grupo, el mensaje aparece en Discord como respuesta a la squad, con una etiqueta según lo que dijo: `✅ Juan viene (wsp)`, `🕒 Juan viene más tarde, en ~20 min (wsp)`, `❌ Juan no viene (wsp)` o `💬 Juan (wsp)` si no se entiende. Siempre se muestra el texto original. Los demás mensajes del grupo se ignoran. |
 | `/wa-grupos` | Requiere el permiso "Gestionar servidor". Lista los grupos de WhatsApp del número, con nombre e ID. |
 
 Juegos reconocidos (se ignoran mayúsculas, acentos y espacios): Valorant `valo` (5), League of Legends `lol` (5), Fortnite `fn` (4), Counter-Strike 2 `cs` (5), Dota 2 (5), Overwatch 2 `ow` (5), Rainbow Six Siege `r6` (5), Apex Legends (3), Rocket League `rl` (lista para jugar con 2, llena con 3), Warzone `wz` (4), PUBG (4), Marvel Rivals (6), Lethal Company `lethal` (4), Left 4 Dead 2 `l4d2` (4), Elden Ring `er` (3). Cualquier otro juego usa un cupo de 5.
 
 Cuando un juego tiene mínimo (como Rocket League), al llegar a ese número el bot menciona a los anotados avisando que ya pueden jugar, y la squad sigue abierta hasta llenarse.
 
-Juegos de mundo abierto, sin cupo: Minecraft `mc`, Project Zomboid `pz` y Valheim. La squad nunca se completa: la gente se anota y el aviso dice `Están jugando {juego}: {nombres}. Sumate en Discord: {link}`. La lista se edita en `src/squads/games.js`.
+Juegos de mundo abierto, sin cupo: Minecraft `mc`, Project Zomboid `pz` y Valheim. La squad nunca se completa: la gente se anota y el aviso dice `están jugando {juego}: {nombres}. caete, sumate en discord: {link}`. La lista se edita en `src/squads/games.js`.
 
 La interpretación usa reglas locales (no manda los mensajes a ningún servicio externo): tolera errores de tipeo y letras repetidas, y reconoce frases como "en 20", "como y voy", "estoy comiendo", "no estoy" o "deja de joder". Las listas de frases están en `src/squads/replyIntent.js`.
 
 Las respuestas se reenvían durante 2 horas después de cada aviso y se pierden si el bot se reinicia (todo vive en memoria). Avisale a la gente del grupo que lo que respondan a los avisos se publica en Discord.
+
+### Tono del bot
+
+Los mensajes a los jugadores (Discord y WhatsApp) hablan en argentino con tucumanismos (*chango*, *meta*, *y diái?*, *un cachito*, *hacerse atrá*) y escriben como en un chat: todo en minúsculas, sin ¿ ni ¡ de apertura, y con puntos y comas que aparecen solo a veces (30% de probabilidad cada uno). Las comas entre nombres se mantienen siempre. Todos los textos están en `src/texts.js`; los mensajes del canal de administración quedan neutros.
 
 Si WhatsApp no está conectado, el bot responde en Discord que el aviso no se pudo enviar (los avisos automáticos fallidos se informan en el canal de administración). Las desconexiones y el cierre de sesión de WhatsApp también se avisan en ese canal.
 

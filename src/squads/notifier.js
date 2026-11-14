@@ -1,5 +1,6 @@
 import { buildCompletedText, buildMissingText } from './messages.js';
 import { WhatsAppUnavailableError } from '../whatsapp/errors.js';
+import { T } from '../texts.js';
 
 const NOTICE_TTL_MS = 2 * 60 * 60_000;
 const MAX_NOTICES = 500;
@@ -58,13 +59,13 @@ export function createSquadNotifier({
         return { ok: false, reason: 'unavailable', message: err.message };
       }
       logger.error('[whatsapp] Error al enviar aviso:', err);
-      return { ok: false, reason: 'error', message: 'Ocurrió un error al enviar el mensaje por WhatsApp.' };
+      return { ok: false, reason: 'error', message: T.wa.sendError };
     }
   }
 
   async function notifyMissing(squad) {
     if (squad.notifying) {
-      return { ok: false, reason: 'in_progress', message: 'Ya se está enviando un aviso para esta squad.' };
+      return { ok: false, reason: 'in_progress', message: T.errors.inProgress };
     }
     const remaining = manager.cooldownRemaining(squad);
     if (remaining > 0) {

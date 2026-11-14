@@ -1,5 +1,6 @@
 import { escapeMarkdown } from 'discord.js';
 import { classifyReply, ReplyIntent } from '../squads/replyIntent.js';
+import { fill, T } from '../texts.js';
 
 export const DISCORD_MESSAGE_LIMIT = 2000;
 const ELLIPSIS = '…';
@@ -27,11 +28,11 @@ function fitEscaped(prefix, text, limit) {
 function intentLabel({ intent, minutes }) {
   switch (intent) {
     case ReplyIntent.COMING:
-      return { emoji: '✅', label: ' viene' };
+      return { emoji: '✅', label: T.relay.coming };
     case ReplyIntent.LATE:
-      return { emoji: '🕒', label: minutes ? ` viene más tarde, en ~${minutes} min` : ' viene más tarde' };
+      return { emoji: '🕒', label: minutes ? fill(T.relay.lateMinutes, { minutes }) : T.relay.late };
     case ReplyIntent.NOT_COMING:
-      return { emoji: '❌', label: ' no viene' };
+      return { emoji: '❌', label: T.relay.notComing };
     default:
       return { emoji: '💬', label: '' };
   }
@@ -43,7 +44,7 @@ function intentLabel({ intent, minutes }) {
  */
 export function buildRelayPayload({ senderName, text, messageId }) {
   const { emoji, label } = intentLabel(classifyReply(text));
-  const prefix = `${emoji} **${escapeMarkdown(senderName)}**${label} (WhatsApp): `;
+  const prefix = `${emoji} **${escapeMarkdown(senderName)}**${label} ${T.relay.source}: `;
   return {
     content: fitEscaped(prefix, text, DISCORD_MESSAGE_LIMIT),
     reply: messageId ? { messageReference: messageId, failIfNotExists: false } : undefined,

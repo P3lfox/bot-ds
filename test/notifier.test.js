@@ -22,11 +22,16 @@ function makeSquad(manager) {
 test('missing text follows the requested format', () => {
   const manager = makeManager();
   const squad = makeSquad(manager);
+  const always = () => 0;
   assert.equal(
-    buildMissingText(squad),
-    'Faltan 3 para la squad de CS2. Están: Ana, Beto. Sumate en Discord: https://discord.com/channels/g/c/m',
+    buildMissingText(squad, always),
+    'y diái? faltan 3 pa la squad de cs2. ya están: Ana, Beto. sumate en discord: https://discord.com/channels/g/c/m',
   );
-  assert.match(buildCompletedText(squad), /CS2/);
+  assert.equal(buildCompletedText(squad, always), 'meta, ya está la squad de cs2! juegan: Ana, Beto');
+  assert.equal(
+    buildMissingText(squad, () => 0.99),
+    'y diái? faltan 3 pa la squad de cs2 ya están: Ana, Beto sumate en discord: https://discord.com/channels/g/c/m',
+  );
 });
 
 test('formatDuration renders minutes and seconds', () => {
@@ -90,7 +95,7 @@ test('open squad notice lists who is playing without a missing count', () => {
   const manager = makeManager();
   const squad = manager.create({ game: 'Minecraft', capacity: null, creatorId: 'u1', creatorName: 'Ana' });
   manager.attachMessage(squad.id, { channelId: 'c', messageId: 'm', url: 'https://discord.com/channels/g/c/m' });
-  assert.equal(buildMissingText(squad), 'Están jugando Minecraft: Ana. Sumate en Discord: https://discord.com/channels/g/c/m');
+  assert.equal(buildMissingText(squad, () => 0), 'están jugando minecraft: Ana. caete, sumate en discord: https://discord.com/channels/g/c/m');
 });
 
 test('sent notices are remembered so WhatsApp replies can be routed to the squad', async () => {

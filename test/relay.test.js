@@ -4,7 +4,7 @@ import { buildRelayPayload, createReplyRelay, DISCORD_MESSAGE_LIMIT } from '../s
 
 test('relay payload has the expected format, replies to the squad message and mentions nobody', () => {
   assert.deepEqual(buildRelayPayload({ senderName: 'Juan', text: 'jaja', messageId: 'm1' }), {
-    content: '💬 **Juan** (WhatsApp): jaja',
+    content: '💬 **Juan** (wsp): jaja',
     reply: { messageReference: 'm1', failIfNotExists: false },
     allowedMentions: { parse: [], repliedUser: false },
   });
@@ -12,15 +12,15 @@ test('relay payload has the expected format, replies to the squad message and me
 
 test('the reply is labelled with the detected intent', () => {
   const content = (text) => buildRelayPayload({ senderName: 'Juan', text, messageId: 'm1' }).content;
-  assert.equal(content('dale voy'), '✅ **Juan** viene (WhatsApp): dale voy');
-  assert.equal(content('en 20 llego'), '🕒 **Juan** viene más tarde, en ~20 min (WhatsApp): en 20 llego');
-  assert.equal(content('como y voy'), '🕒 **Juan** viene más tarde (WhatsApp): como y voy');
-  assert.equal(content('deja de joder'), '❌ **Juan** no viene (WhatsApp): deja de joder');
+  assert.equal(content('dale voy'), '✅ **Juan** viene (wsp): dale voy');
+  assert.equal(content('en 20 llego'), '🕒 **Juan** viene más tarde, en ~20 min (wsp): en 20 llego');
+  assert.equal(content('como y voy'), '🕒 **Juan** viene más tarde (wsp): como y voy');
+  assert.equal(content('deja de joder'), '❌ **Juan** no viene (wsp): deja de joder');
 });
 
 test('markdown and mentions in the text are escaped', () => {
   const { content } = buildRelayPayload({ senderName: '*Jua_n*', text: '@everyone **ya**', messageId: 'm1' });
-  assert.equal(content, '💬 **\\*Jua\\_n\\*** (WhatsApp): @everyone \\*\\*ya\\*\\*');
+  assert.equal(content, '💬 **\\*Jua\\_n\\*** (wsp): @everyone \\*\\*ya\\*\\*');
 });
 
 test('long markdown-heavy text stays within the Discord limit after escaping', () => {
@@ -55,7 +55,7 @@ test('relay routes a reply to the channel of the quoted notice', async () => {
   await relay({ quotedId: 'unknown', text: 'x', senderName: 'Ana' });
   assert.deepEqual(fetched, ['c1']);
   assert.equal(channel.sent.length, 1);
-  assert.equal(channel.sent[0].content, '🕒 **Ana** viene más tarde (WhatsApp): como y voy');
+  assert.equal(channel.sent[0].content, '🕒 **Ana** viene más tarde (wsp): como y voy');
   assert.equal(channel.sent[0].reply.messageReference, 'm1');
 });
 

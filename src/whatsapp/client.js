@@ -7,6 +7,7 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { WhatsAppUnavailableError } from './errors.js';
+import { T } from '../texts.js';
 import { routeGroupReplies } from './replies.js';
 
 const MAX_BACKOFF_MS = 60_000;
@@ -139,8 +140,8 @@ export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => 
   }
 
   async function avisarGrupo(text) {
-    if (!groupId) throw new WhatsAppUnavailableError('WA_GROUP_ID no está configurado.');
-    if (!connected || !sock) throw new WhatsAppUnavailableError('WhatsApp no está conectado.');
+    if (!groupId) throw new WhatsAppUnavailableError(T.wa.noGroup);
+    if (!connected || !sock) throw new WhatsAppUnavailableError(T.wa.notConnected);
     if (!groupCache.has(groupId)) {
       groupCache.set(groupId, await sock.groupMetadata(groupId));
     }
@@ -149,7 +150,7 @@ export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => 
   }
 
   async function listarGrupos() {
-    if (!connected || !sock) throw new WhatsAppUnavailableError('WhatsApp no está conectado.');
+    if (!connected || !sock) throw new WhatsAppUnavailableError(T.wa.notConnected);
     const groups = await sock.groupFetchAllParticipating();
     return Object.values(groups)
       .map((g) => {
