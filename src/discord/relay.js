@@ -1,4 +1,5 @@
 import { escapeMarkdown } from 'discord.js';
+import { classifyReply, ReplyIntent } from '../squads/replyIntent.js';
 
 export const DISCORD_MESSAGE_LIMIT = 2000;
 const ELLIPSIS = '…';
@@ -23,9 +24,26 @@ function fitEscaped(prefix, text, limit) {
   return prefix + ELLIPSIS;
 }
 
-/** Discord message for a WhatsApp reply, posted as a reply to the squad message without pinging anyone. */
+function intentLabel({ intent, minutes }) {
+  switch (intent) {
+    case ReplyIntent.COMING:
+      return { emoji: '✅', label: ' viene' };
+    case ReplyIntent.LATE:
+      return { emoji: '🕒', label: minutes ? ` viene más tarde, en ~${minutes} min` : ' viene más tarde' };
+    case ReplyIntent.NOT_COMING:
+      return { emoji: '❌', label: ' no viene' };
+    default:
+      return { emoji: '💬', label: '' };
+  }
+}
+
+/**
+ * Discord message for a WhatsApp reply, labelled with the detected intent and posted
+ * as a reply to the squad message without pinging anyone. The original text is always shown.
+ */
 export function buildRelayPayload({ senderName, text, messageId }) {
-  const prefix = `💬 **${escapeMarkdown(senderName)}** (WhatsApp): `;
+  const { emoji, label } = intentLabel(classifyReply(text));
+  const prefix = `${emoji} **${escapeMarkdown(senderName)}**${label} (WhatsApp): `;
   return {
     content: fitEscaped(prefix, text, DISCORD_MESSAGE_LIMIT),
     reply: messageId ? { messageReference: messageId, failIfNotExists: false } : undefined,
