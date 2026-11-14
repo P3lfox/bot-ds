@@ -19,6 +19,7 @@ Bot de Discord que arma squads para jugar con `/squad` y avisa a un grupo de Wha
 | Cupo completo | Menciona a todos, desactiva los botones y manda un único aviso de "squad completa" al grupo. |
 | A los 5 minutos | Si todavía falta gente y no hay cooldown activo, avisa automáticamente por WhatsApp. |
 | A los 30 minutos | Si no se completó, expira y se desactivan los botones. |
+| Respuesta en WhatsApp | Si alguien **responde** (con *Responder*) a un aviso del bot en el grupo, el mensaje aparece en Discord como respuesta a la squad: `💬 Juan (WhatsApp): en 20 llego`. Los demás mensajes del grupo se ignoran. |
 | `/wa-grupos` | Requiere el permiso "Gestionar servidor". Lista los grupos de WhatsApp del número, con nombre e ID. |
 
 Juegos reconocidos (se ignoran mayúsculas, acentos y espacios): Valorant `valo` (5), League of Legends `lol` (5), Fortnite `fn` (4), Counter-Strike 2 `cs` (5), Dota 2 (5), Overwatch 2 `ow` (5), Rainbow Six Siege `r6` (5), Apex Legends (3), Rocket League `rl` (lista para jugar con 2, llena con 3), Warzone `wz` (4), PUBG (4), Marvel Rivals (6), Lethal Company `lethal` (4), Left 4 Dead 2 `l4d2` (4), Elden Ring `er` (3). Cualquier otro juego usa un cupo de 5.
@@ -26,6 +27,8 @@ Juegos reconocidos (se ignoran mayúsculas, acentos y espacios): Valorant `valo`
 Cuando un juego tiene mínimo (como Rocket League), al llegar a ese número el bot menciona a los anotados avisando que ya pueden jugar, y la squad sigue abierta hasta llenarse.
 
 Juegos de mundo abierto, sin cupo: Minecraft `mc`, Project Zomboid `pz` y Valheim. La squad nunca se completa: la gente se anota y el aviso dice `Están jugando {juego}: {nombres}. Sumate en Discord: {link}`. La lista se edita en `src/squads/games.js`.
+
+Las respuestas se reenvían durante 2 horas después de cada aviso y se pierden si el bot se reinicia (todo vive en memoria). Avisale a la gente del grupo que lo que respondan a los avisos se publica en Discord.
 
 Si WhatsApp no está conectado, el bot responde en Discord que el aviso no se pudo enviar (los avisos automáticos fallidos se informan en el canal de administración). Las desconexiones y el cierre de sesión de WhatsApp también se avisan en ese canal.
 
@@ -130,4 +133,3 @@ src/squads/         lógica de squads (crear, sumar, bajar, expirar, cooldown) y
 ## Ideas a futuro
 
 - **Estado del servidor (Minecraft, Project Zomboid, Valheim):** conectar el bot al servidor del juego para mostrar en el embed si está en línea y quién está conectado.
-- **Respuestas de WhatsApp:** reenviar a Discord los mensajes que respondan al aviso del bot en el grupo (por ejemplo, "en 20 llego").

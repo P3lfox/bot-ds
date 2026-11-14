@@ -31,6 +31,7 @@ const whatsapp = createWhatsApp({
     const text = WA_EVENT_TEXT[type];
     if (text) discord.notifyAdmin(detail ? `${text} (${detail})` : text);
   },
+  onGroupReply: (reply) => discord.relayWhatsAppReply(reply),
 });
 
 const manager = new SquadManager({

@@ -7,6 +7,7 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { WhatsAppUnavailableError } from './errors.js';
+import { extractGroupReply } from './replies.js';
 
 const MAX_BACKOFF_MS = 60_000;
 
@@ -15,8 +16,9 @@ const MAX_BACKOFF_MS = 60_000;
  * and automatic reconnection, except when the session was closed from the phone.
  *
  * `onEvent` receives { type: 'connected' | 'reconnected' | 'disconnected' | 'logged_out', detail? }.
+ * `onGroupReply` receives { quotedId, text, senderName } for replies quoting a message in the group.
  */
-export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => {}, logger = console }) {
+export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => {}, onGroupReply = () => {}, logger = console }) {
   const baileysLogger = pino({ level: process.env.WA_LOG_LEVEL ?? 'error' });
   const groupCache = new Map();
 
@@ -75,6 +77,18 @@ export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => 
       for (const update of updates) groupCache.delete(update.id);
     });
     socket.ev.on('group-participants.update', ({ id }) => groupCache.delete(id));
+
+    socket.ev.on('messages.upsert', ({ messages, type }) => {
+      if (type !== 'notify' || !groupId) return;
+      for (const msg of messages) {
+        try {
+          const reply = extractGroupReply(msg, groupId);
+          if (reply) Promise.resolve(onGroupReply(reply)).catch((err) => logger.error('[whatsapp] Error reenviando respuesta:', err));
+        } catch (err) {
+          logger.error('[whatsapp] Error leyendo un mensaje del grupo:', err);
+        }
+      }
+    });
 
     socket.ev.on('connection.update', async (update) => {
       if (socket !== sock) return;
@@ -136,7 +150,8 @@ export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => 
     if (!groupCache.has(groupId)) {
       groupCache.set(groupId, await sock.groupMetadata(groupId));
     }
-    await sock.sendMessage(groupId, { text });
+    const sent = await sock.sendMessage(groupId, { text });
+    return { id: sent?.key?.id ?? null };
   }
 
   async function listarGrupos() {

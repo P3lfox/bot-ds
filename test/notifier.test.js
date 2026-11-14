@@ -92,3 +92,33 @@ test('open squad notice lists who is playing without a missing count', () => {
   manager.attachMessage(squad.id, { channelId: 'c', messageId: 'm', url: 'https://discord.com/channels/g/c/m' });
   assert.equal(buildMissingText(squad), 'Están jugando Minecraft: Ana. Sumate en Discord: https://discord.com/channels/g/c/m');
 });
+
+test('sent notices are remembered so WhatsApp replies can be routed to the squad', async () => {
+  let n = 0;
+  const manager = makeManager();
+  const squad = makeSquad(manager);
+  const notifier = createSquadNotifier({ manager, whatsapp: { avisarGrupo: async () => ({ id: `WA${++n}` }) } });
+  await notifier.notifyMissing(squad);
+  await notifier.notifyCompleted(squad);
+  const target = { squadId: squad.id, game: 'CS2', channelId: 'c', messageId: 'm' };
+  assert.deepEqual(notifier.findNotice('WA1'), target);
+  assert.deepEqual(notifier.findNotice('WA2'), target);
+  assert.equal(notifier.findNotice('nope'), undefined);
+});
+
+test('remembered notices expire after the retention window', async () => {
+  let now = 0;
+  const manager = makeManager();
+  const squad = makeSquad(manager);
+  const notifier = createSquadNotifier({
+    manager,
+    whatsapp: { avisarGrupo: async () => ({ id: 'WA1' }) },
+    now: () => now,
+    noticeTtlMs: 1000,
+  });
+  await notifier.notifyMissing(squad);
+  now = 999;
+  assert.ok(notifier.findNotice('WA1'));
+  now = 1001;
+  assert.equal(notifier.findNotice('WA1'), undefined);
+});
