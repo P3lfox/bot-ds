@@ -37,6 +37,8 @@ const NOT_COMING = [
   'estoy con mi novio', 'estoy con la familia', 'tengo un cumple', 'tengo cumple', 'estoy enfermo', 'estoy enferma',
   'no tengo la pc', 'no tengo pc', 'sin pc', 'sin internet', 'no tengo internet', 'se me corto internet',
   'se me rompio la pc', 'se corto la luz', 'sin luz',
+  // Tucumano
+  'novui', 'novua', 'me hago atras', 'me echo atras', 'hacerse atras', 'ni aca',
 ];
 
 const LATE = [
@@ -59,19 +61,29 @@ const LATE = [
   'dame un rato', 'dame un toque', 'dame', 'un rato', 'en un rato', 'al rato', 'un toque', 'en un toque',
   'bancame', 'banquenme', 'banca', 'esperame', 'esperen', 'esperenme', 'aguanten', 'aguantame', 'ya casi',
   'casi', 'mas tarde', 'despues', 'luego voy', 'luego entro', 'en breve', 'enseguida', 'ahora voy',
+  // Tucumano
+  'cachito', 'un cacho', 'dame un cacho', 'mas luego', 'mas de un rato', 'enyantando', 'enyanto', 'estoy enyantando',
+  'endenante', 'sol alto',
 ];
 
 const COMING = [
   'voy', 'dale', 'me sumo', 'sumo', 'sumame', 'sumenme', 'me apunto', 'vamos', 'vamo', 'de una', 'ahi voy',
   'ya voy', 'ya entro', 'ahi entro', 'entro', 'si', 'sip', 'obvio', 'listo', 'joya', 'ok', 'oka', 'okey', 'va',
   'me prendo', 'cuenten conmigo', 'conmigo', 'estoy', 'aca estoy', 'yo juego', 'yo', 'prendo la pc',
+  // Tucumano
+  'yavui', 'metale',
 ];
+
+// Tucumano "ok": only when they open the message ("meta, ahí vuí", not "la meta es ganar").
+const COMING_OPENERS = new Set(['meta', 'keno']);
 
 // Applied after normalizing each token.
 const TOKEN_ALIASES = new Map([
   ['toy', 'estoy'], ['estoi', 'estoy'], ['stoy', 'estoy'], ['tamo', 'estamos'], ['boy', 'voy'], ['voi', 'voy'],
   ['vo', 'voy'], ['dps', 'despues'], ['dsp', 'despues'], ['dspues', 'despues'], ['q', 'que'], ['k', 'que'],
   ['xq', 'porque'], ['pq', 'porque'], ['nd', 'nada'], ['tb', 'tambien'], ['tmb', 'tambien'],
+  // Tucumano: "vuí" / "vuá" (voy / voy a), "toi" (estoy), "atrá" (atrás), "noma" (nomás)
+  ['vui', 'voy'], ['vua', 'voy'], ['toi', 'estoy'], ['atra', 'atras'], ['noma', 'nomas'],
 ]);
 
 // Intensifiers and fillers that should not break a phrase ("estoy re cansado").
@@ -178,7 +190,7 @@ function classifyTokens(tokens) {
 
   const minutes = extractMinutes(tokens.join(' '));
   if (minutes !== null || matchesAny(tokens, PATTERNS.late)) return { intent: ReplyIntent.LATE, minutes };
-  if (matchesAny(tokens, PATTERNS.coming)) return { intent: ReplyIntent.COMING, minutes: null };
+  if (COMING_OPENERS.has(tokens[0]) || matchesAny(tokens, PATTERNS.coming)) return { intent: ReplyIntent.COMING, minutes: null };
   return UNKNOWN_RESULT;
 }
 
@@ -188,8 +200,10 @@ export function classifyReply(text) {
   const lastPero = tokens.lastIndexOf('pero');
   if (lastPero !== -1) {
     const tail = classifyTokens(tokens.slice(lastPero + 1));
-    if (tail.intent !== ReplyIntent.UNKNOWN) return tail;
-    return classifyTokens(tokens.slice(0, lastPero));
+    const head = classifyTokens(tokens.slice(0, lastPero));
+    // "sol alto pero vuí": late but coming is still late.
+    if (tail.intent === ReplyIntent.COMING && head.intent === ReplyIntent.LATE) return head;
+    return tail.intent !== ReplyIntent.UNKNOWN ? tail : head;
   }
   return classifyTokens(tokens);
 }

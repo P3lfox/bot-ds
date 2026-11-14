@@ -28,7 +28,7 @@ Cuando un juego tiene mínimo (como Rocket League), al llegar a ese número el b
 
 Juegos de mundo abierto, sin cupo: Minecraft `mc`, Project Zomboid `pz` y Valheim. La squad nunca se completa: la gente se anota y el aviso dice `están jugando {juego}: {nombres}. caete, sumate en discord: {link}`. La lista se edita en `src/squads/games.js`.
 
-La interpretación usa reglas locales (no manda los mensajes a ningún servicio externo): tolera errores de tipeo y letras repetidas, y reconoce frases como "en 20", "como y voy", "estoy comiendo", "no estoy" o "deja de joder". Las listas de frases están en `src/squads/replyIntent.js`.
+La interpretación usa reglas locales (no manda los mensajes a ningún servicio externo): tolera errores de tipeo y letras repetidas, y reconoce frases como "en 20", "como y voy", "estoy comiendo", "no estoy" o "deja de joder", además de tucumanismos como "ya vuí", "meta", "esperame un cachito", "estoy enyantando", "no vuí" o "me hago atrá". Las listas de frases están en `src/squads/replyIntent.js`.
 
 Las respuestas se reenvían durante 2 horas después de cada aviso y se pierden si el bot se reinicia (todo vive en memoria). Avisale a la gente del grupo que lo que respondan a los avisos se publica en Discord.
 

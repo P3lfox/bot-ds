@@ -68,3 +68,23 @@ test('after "pero", the last clause decides', () => {
   assert.equal(intentOf('dale pero no puedo'), ReplyIntent.NOT_COMING);
   assert.equal(intentOf('no hay drama, voy'), ReplyIntent.COMING);
 });
+
+test('tucumano: coming', () => {
+  expectAll(ReplyIntent.COMING, ['ya vuí', 'yavuí', 'ya vui chango', 'meta', 'meta, ahí vuí', 'keno', 'metalé', 'vuá jugar']);
+});
+
+test('tucumano: late', () => {
+  expectAll(ReplyIntent.LATE, [
+    'esperame un cachito', 'un cachito', 'dame un cachito nomá', 'en un cachito vuí', 'más luego', 'más de un rato',
+    'estoy enyantando', 'toi enyantando', 'enyanto y vuí', 'endenante vuí', 'sol alto pero vuí',
+  ]);
+});
+
+test('tucumano: not coming', () => {
+  expectAll(ReplyIntent.NOT_COMING, ['no vuí', 'novuí', 'no vuá', 'me hago atrá', 'me hago atrás', 'me echo atrá', 'ni aca', 'hoy no vuí chango']);
+});
+
+test('tucumano "meta"/"keno" only mean yes when they open the message', () => {
+  expectAll(ReplyIntent.UNKNOWN, ['la meta es ganar', 'cual es la meta']);
+  expectAll(ReplyIntent.COMING, ['meta', 'meta chango', 'keno, vamos']);
+});
