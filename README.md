@@ -11,7 +11,8 @@ Bot de Discord que arma squads para jugar con `/squad` y avisa a un grupo de Wha
 
 | Acción | Resultado |
 | --- | --- |
-| `/squad juego:<texto> [cupo:<2-20>]` | Publica la squad (cupo por defecto: 5). El creador queda anotado. |
+| `/squad juego:<texto>` | Publica la squad. El cupo sale del juego (`valo` → Valorant, 5; `fortnite` → 4; ver abajo). El creador queda anotado. |
+| Creador en un canal de voz | Quienes ya están en ese canal quedan anotados, y quien entre mientras la squad está abierta también. Salir del canal no da de baja. |
 | **Me sumo / Me bajo** | Actualiza el embed. El creador no puede bajarse: usa **Cancelar**. |
 | **Avisar por WhatsApp** | Manda al grupo: `Faltan X para la squad de {juego}. Están: {nombres}. Sumate en Discord: {link}`. Cooldown de 10 minutos por squad. |
 | **Cancelar** | Solo el creador. Desactiva los botones. |
@@ -19,6 +20,8 @@ Bot de Discord que arma squads para jugar con `/squad` y avisa a un grupo de Wha
 | A los 5 minutos | Si todavía falta gente y no hay cooldown activo, avisa automáticamente por WhatsApp. |
 | A los 30 minutos | Si no se completó, expira y se desactivan los botones. |
 | `/wa-grupos` | Requiere el permiso "Gestionar servidor". Lista los grupos de WhatsApp del número, con nombre e ID. |
+
+Juegos reconocidos (se ignoran mayúsculas, acentos y espacios): Valorant `valo` (5), League of Legends `lol` (5), Fortnite `fn` (4), Counter-Strike 2 `cs` (5), Dota 2 (5), Overwatch 2 `ow` (5), Rainbow Six Siege `r6` (5), Apex Legends (3), Rocket League `rl` (3), Warzone `wz` (4), PUBG (4), Marvel Rivals (6). Cualquier otro juego usa un cupo de 5. La lista se edita en `src/squads/games.js`.
 
 Si WhatsApp no está conectado, el bot responde en Discord que el aviso no se pudo enviar (los avisos automáticos fallidos se informan en el canal de administración). Las desconexiones y el cierre de sesión de WhatsApp también se avisan en ese canal.
 
@@ -33,6 +36,7 @@ Si WhatsApp no está conectado, el bot responde en Discord que el aviso no se pu
    - Embed Links
    - Read Message History (para editar el mensaje de la squad cuando expira)
    - Attach Files (solo para `/wa-grupos` cuando la lista es muy larga)
+   - View Channel también en los canales de voz, para ver quién está conectado (el intent `GuildVoiceStates` no es privilegiado y no hay que activarlo en el portal)
 5. Abrí la URL generada e invitá el bot a tu servidor.
 6. En Discord activá **Configuración → Avanzado → Modo desarrollador**. Clic derecho en el servidor → **Copiar ID del servidor** → `DISCORD_GUILD_ID`. Clic derecho en el canal de administración → **Copiar ID del canal** → `DISCORD_ADMIN_CHANNEL_ID`.
 

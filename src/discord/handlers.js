@@ -1,5 +1,5 @@
 import { AttachmentBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
-import { SQUAD_DEFAULTS } from '../config.js';
+import { resolveGame } from '../squads/games.js';
 import { SquadError } from '../squads/squadManager.js';
 import { formatDuration } from '../squads/messages.js';
 import { WhatsAppUnavailableError } from '../whatsapp/errors.js';
@@ -26,22 +26,64 @@ export async function replyEphemeral(interaction, content) {
   }
 }
 
-export function createHandlers({ manager, notifier, whatsapp }) {
-  async function handleSquadCommand(interaction) {
-    const game = interaction.options.getString('juego', true).trim();
-    const capacity = interaction.options.getInteger('cupo') ?? SQUAD_DEFAULTS.capacity;
-    if (!game) return replyEphemeral(interaction, 'Tenés que indicar un juego.');
+/** Edits the squad message outside of an interaction. `channels` is a client or guild channel manager. Never throws. */
+export async function editSquadMessage(channels, squad) {
+  if (!squad.channelId || !squad.messageId) return;
+  try {
+    const channel = await channels.fetch(squad.channelId);
+    const message = await channel.messages.fetch(squad.messageId);
+    await message.edit(squadMessagePayload(squad));
+  } catch (err) {
+    console.error(`[discord] No se pudo actualizar el mensaje de la squad ${squad.id}:`, err.message ?? err);
+  }
+}
 
-    const squad = manager.create({ game, capacity, creatorId: interaction.user.id, creatorName: displayName(interaction) });
+export function createHandlers({ manager, notifier, whatsapp }) {
+  /** Mentions everyone and sends the single WhatsApp "complete" notice. Returns the WhatsApp result. */
+  async function announceCompletion(squad, send) {
+    const ids = [...squad.members.keys()];
+    await send({
+      content: `¡Squad completa para **${squad.game}**! ${ids.map((id) => `<@${id}>`).join(' ')} ¡a jugar!`,
+      allowedMentions: { users: ids },
+    });
+    return notifier.notifyCompleted(squad);
+  }
+
+  async function handleSquadCommand(interaction) {
+    const typed = interaction.options.getString('juego', true).trim();
+    if (!typed) return replyEphemeral(interaction, 'Tenés que indicar un juego.');
+    const { name, capacity } = resolveGame(typed);
+
+    const voiceChannel = interaction.member?.voice?.channel ?? null;
+    const squad = manager.create({
+      game: name,
+      capacity,
+      creatorId: interaction.user.id,
+      creatorName: displayName(interaction),
+      voiceChannelId: voiceChannel?.id ?? null,
+    });
+
+    // Everyone already in the creator's voice channel joins automatically.
+    let completed = false;
+    for (const member of voiceChannel?.members.values() ?? []) {
+      if (completed || member.user.bot || member.id === interaction.user.id) continue;
+      completed = manager.join(squad.id, member.id, member.displayName).completed;
+    }
+
     try {
       const response = await interaction.reply({ ...squadMessagePayload(squad), withResponse: true });
       const message = response.resource?.message;
       if (message) {
-        manager.attachMessage(squad.id, { channelId: message.channelId, messageId: message.id, url: message.url });
+        Object.assign(squad, { channelId: message.channelId, messageId: message.id, messageUrl: message.url });
       }
     } catch (err) {
       manager.discard(squad.id);
       throw err;
+    }
+
+    if (completed) {
+      const result = await announceCompletion(squad, (payload) => interaction.followUp(payload));
+      if (!result.ok) await replyEphemeral(interaction, `No se pudo avisar por WhatsApp que la squad se completó: ${result.message}`);
     }
   }
 
@@ -50,14 +92,32 @@ export function createHandlers({ manager, notifier, whatsapp }) {
     await interaction.update(squadMessagePayload(squad));
     if (!completed) return;
 
-    const ids = [...squad.members.keys()];
-    await interaction.followUp({
-      content: `¡Squad completa para **${squad.game}**! ${ids.map((id) => `<@${id}>`).join(' ')} ¡a jugar!`,
-      allowedMentions: { users: ids },
-    });
-    const result = await notifier.notifyCompleted(squad);
+    const result = await announceCompletion(squad, (payload) => interaction.followUp(payload));
     if (!result.ok) {
       await replyEphemeral(interaction, `No se pudo avisar por WhatsApp que la squad se completó: ${result.message}`);
+    }
+  }
+
+  /** Whoever enters the voice channel of an open squad joins it. Leaving the channel does not remove anyone. */
+  async function handleVoiceStateUpdate(oldState, newState) {
+    try {
+      const channelId = newState.channelId;
+      const member = newState.member;
+      if (!channelId || channelId === oldState.channelId || !member || member.user.bot) return;
+
+      const squad = manager.findOpenByVoiceChannel(channelId);
+      if (!squad || squad.members.has(member.id)) return;
+
+      const { completed } = manager.join(squad.id, member.id, member.displayName);
+      await editSquadMessage(newState.guild.channels, squad);
+      if (!completed) return;
+
+      const textChannel = await newState.guild.channels.fetch(squad.channelId);
+      const result = await announceCompletion(squad, (payload) => textChannel.send(payload));
+      if (!result.ok) console.warn(`[squads] No se pudo avisar por WhatsApp que la squad de ${squad.game} se completó: ${result.message}`);
+    } catch (err) {
+      if (err instanceof SquadError) return;
+      console.error('[discord] Error manejando el cambio de canal de voz:', err);
     }
   }
 
@@ -146,5 +206,5 @@ export function createHandlers({ manager, notifier, whatsapp }) {
     }
   }
 
-  return { handleInteraction };
+  return { handleInteraction, handleVoiceStateUpdate };
 }

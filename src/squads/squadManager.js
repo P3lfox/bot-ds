@@ -40,7 +40,7 @@ export class SquadManager {
     this.logger = logger;
   }
 
-  create({ game, capacity, creatorId, creatorName }) {
+  create({ game, capacity, creatorId, creatorName, voiceChannelId = null }) {
     if (!Number.isInteger(capacity) || capacity < 2) {
       throw new SquadError('INVALID_CAPACITY', 'El cupo tiene que ser un número entero mayor o igual a 2.');
     }
@@ -55,6 +55,7 @@ export class SquadManager {
       lastNotifiedAt: null,
       notifying: false,
       completionNotified: false,
+      voiceChannelId,
       channelId: null,
       messageId: null,
       messageUrl: null,
@@ -70,6 +71,14 @@ export class SquadManager {
 
   get(id) {
     return this.#squads.get(id);
+  }
+
+  /** Oldest open squad linked to a voice channel (Map keeps insertion order). */
+  findOpenByVoiceChannel(voiceChannelId) {
+    for (const squad of this.#squads.values()) {
+      if (squad.voiceChannelId === voiceChannelId && squad.status === SquadStatus.OPEN) return squad;
+    }
+    return undefined;
   }
 
   attachMessage(id, { channelId, messageId, url }) {

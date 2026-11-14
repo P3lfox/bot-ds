@@ -29,19 +29,27 @@ const STATUS_VIEW = {
 
 export function buildSquadEmbed(squad) {
   const view = STATUS_VIEW[squad.status];
-  const missing = Math.max(0, squad.capacity - squad.members.size);
-  const list = [...squad.members.keys()].map((id, i) => `${i + 1}. <@${id}>`).join('\n') || '—';
+  const ids = [...squad.members.keys()];
+  const slots = Array.from({ length: squad.capacity }, (_, i) => `${i + 1}. ${ids[i] ? `<@${ids[i]}>` : '*libre*'}`);
+  const missing = String(Math.max(0, squad.capacity - squad.members.size));
+  const slotsTitle = `Cupos (${ids.length}/${squad.capacity})`;
 
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setColor(view.color)
     .setTitle(`Squad de ${squad.game}`)
     .addFields(
       { name: 'Creada por', value: `<@${squad.creatorId}>`, inline: true },
       { name: 'Estado', value: view.label, inline: true },
-      { name: 'Faltan', value: String(missing), inline: true },
-      { name: `Anotados (${squad.members.size}/${squad.capacity})`, value: list },
+      { name: 'Faltan', value: missing, inline: true },
+      { name: slotsTitle, value: slots.join('\n') },
     )
     .setTimestamp(squad.createdAt);
+
+  if (squad.voiceChannelId) {
+    const hint = squad.status === SquadStatus.OPEN ? ' (quien entre queda anotado)' : '';
+    embed.addFields({ name: 'Canal de voz', value: `<#${squad.voiceChannelId}>${hint}` });
+  }
+  return embed;
 }
 
 export function buildSquadButtons(squad) {

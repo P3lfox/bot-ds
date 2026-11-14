@@ -85,3 +85,4 @@ test('notifyCompleted sends a single message per squad', async () => {
   await notifier.notifyCompleted(squad);
   assert.equal(sent.length, 1);
 });
+

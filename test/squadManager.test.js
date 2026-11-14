@@ -136,6 +136,17 @@ test('cooldown remaining counts down from the last notification', async () => {
   assert.equal(manager.cooldownRemaining(squad), 0);
 });
 
+test('findOpenByVoiceChannel returns the oldest open squad linked to that channel', () => {
+  const { manager } = setup();
+  const first = manager.create({ ...base, voiceChannelId: 'v1' });
+  manager.create({ ...base, creatorId: 'u9', voiceChannelId: 'v1' });
+  manager.create({ ...base, creatorId: 'u8' });
+  assert.equal(manager.findOpenByVoiceChannel('v1'), first);
+  assert.equal(manager.findOpenByVoiceChannel('v2'), undefined);
+  manager.cancel(first.id, 'u1');
+  assert.notEqual(manager.findOpenByVoiceChannel('v1'), first);
+});
+
 test('a failing callback does not throw out of the timer', async () => {
   const errors = [];
   const { manager, clock } = setup({
@@ -146,3 +157,4 @@ test('a failing callback does not throw out of the timer', async () => {
   await clock.advance(30 * MIN);
   assert.equal(errors.length, 1);
 });
+

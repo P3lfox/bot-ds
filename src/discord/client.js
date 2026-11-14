@@ -1,10 +1,10 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-import { createHandlers } from './handlers.js';
-import { squadMessagePayload } from './squadView.js';
+import { createHandlers, editSquadMessage } from './handlers.js';
 
 export function createDiscordBot({ config, manager, notifier, whatsapp }) {
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-  const { handleInteraction } = createHandlers({ manager, notifier, whatsapp });
+  // GuildVoiceStates is not privileged: it only needs to be declared here, not in the developer portal.
+  const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
+  const { handleInteraction, handleVoiceStateUpdate } = createHandlers({ manager, notifier, whatsapp });
   const pendingAdminMessages = [];
 
   client.once(Events.ClientReady, (c) => {
@@ -13,6 +13,9 @@ export function createDiscordBot({ config, manager, notifier, whatsapp }) {
   });
   client.on(Events.InteractionCreate, (interaction) => {
     handleInteraction(interaction);
+  });
+  client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+    handleVoiceStateUpdate(oldState, newState);
   });
   client.on(Events.Error, (err) => console.error('[discord] Error del cliente:', err));
   client.on(Events.Warn, (msg) => console.warn('[discord]', msg));
@@ -33,18 +36,6 @@ export function createDiscordBot({ config, manager, notifier, whatsapp }) {
     }
   }
 
-  /** Edits the squad message outside of an interaction (expiry, auto notices). */
-  async function refreshSquadMessage(squad) {
-    if (!squad.channelId || !squad.messageId) return;
-    try {
-      const channel = await client.channels.fetch(squad.channelId);
-      const message = await channel.messages.fetch(squad.messageId);
-      await message.edit(squadMessagePayload(squad));
-    } catch (err) {
-      console.error(`[discord] No se pudo actualizar el mensaje de la squad ${squad.id}:`, err.message ?? err);
-    }
-  }
-
   async function onAutoNotify(squad) {
     const result = await notifier.notifyMissing(squad);
     if (!result.ok && result.reason !== 'cooldown' && result.reason !== 'in_progress') {
@@ -56,7 +47,7 @@ export function createDiscordBot({ config, manager, notifier, whatsapp }) {
     login: () => client.login(config.discordToken),
     destroy: () => client.destroy(),
     notifyAdmin,
-    onSquadExpired: refreshSquadMessage,
+    onSquadExpired: (squad) => editSquadMessage(client.channels, squad),
     onAutoNotify,
   };
 }
