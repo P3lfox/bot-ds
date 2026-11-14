@@ -122,3 +122,14 @@ test('remembered notices expire after the retention window', async () => {
   now = 1001;
   assert.equal(notifier.findNotice('WA1'), undefined);
 });
+
+test('remembered notices are capped, dropping the oldest first', async () => {
+  let n = 0;
+  const manager = makeManager();
+  const squad = makeSquad(manager);
+  const notifier = createSquadNotifier({ manager, whatsapp: { avisarGrupo: async () => ({ id: `WA${++n}` }) }, maxNotices: 2 });
+  for (let i = 0; i < 3; i++) await notifier.notifyCompleted({ ...squad, completionNotified: false });
+  assert.equal(notifier.findNotice('WA1'), undefined);
+  assert.ok(notifier.findNotice('WA2'));
+  assert.ok(notifier.findNotice('WA3'));
+});

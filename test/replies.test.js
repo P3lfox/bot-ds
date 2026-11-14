@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractGroupReply } from '../src/whatsapp/replies.js';
+import { extractGroupReply, routeGroupReplies } from '../src/whatsapp/replies.js';
 
 const GROUP = '123@g.us';
 
@@ -35,4 +35,22 @@ test('ignores messages that are not replies, are from the bot or from other chat
 
 test('falls back to a generic name when pushName is missing', () => {
   assert.equal(extractGroupReply(msg({ pushName: '', message: quoted('voy') }), GROUP).senderName, 'Alguien');
+});
+
+test('routeGroupReplies forwards only replies from live notify events', async () => {
+  const received = [];
+  const messages = [msg({ message: quoted('voy') }), msg({ message: { conversation: 'hola' } })];
+  routeGroupReplies({ messages, type: 'notify' }, GROUP, (r) => received.push(r));
+  routeGroupReplies({ messages, type: 'append' }, GROUP, (r) => received.push(r));
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(received.map((r) => r.text), ['voy']);
+});
+
+test('routeGroupReplies contains errors from the callback', async () => {
+  const errors = [];
+  const logger = { error: (...a) => errors.push(a) };
+  routeGroupReplies({ messages: [msg({ message: quoted('voy') })], type: 'notify' }, GROUP, () => { throw new Error('sync'); }, logger);
+  routeGroupReplies({ messages: [msg({ message: quoted('voy') })], type: 'notify' }, GROUP, async () => { throw new Error('async'); }, logger);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(errors.length, 2);
 });

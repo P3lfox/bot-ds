@@ -7,7 +7,7 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { WhatsAppUnavailableError } from './errors.js';
-import { extractGroupReply } from './replies.js';
+import { routeGroupReplies } from './replies.js';
 
 const MAX_BACKOFF_MS = 60_000;
 
@@ -78,16 +78,10 @@ export function createWhatsApp({ phoneNumber, groupId, authDir, onEvent = () => 
     });
     socket.ev.on('group-participants.update', ({ id }) => groupCache.delete(id));
 
-    socket.ev.on('messages.upsert', ({ messages, type }) => {
-      if (type !== 'notify' || !groupId) return;
-      for (const msg of messages) {
-        try {
-          const reply = extractGroupReply(msg, groupId);
-          if (reply) Promise.resolve(onGroupReply(reply)).catch((err) => logger.error('[whatsapp] Error reenviando respuesta:', err));
-        } catch (err) {
-          logger.error('[whatsapp] Error leyendo un mensaje del grupo:', err);
-        }
-      }
+    socket.ev.on('messages.upsert', (event) => {
+      // Ignore events buffered by a replaced socket so a reply is not relayed twice.
+      if (socket !== sock) return;
+      routeGroupReplies(event, groupId, onGroupReply, logger);
     });
 
     socket.ev.on('connection.update', async (update) => {

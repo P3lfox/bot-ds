@@ -1,5 +1,6 @@
-import { Client, Events, GatewayIntentBits, escapeMarkdown } from 'discord.js';
+import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { createHandlers, editSquadMessage } from './handlers.js';
+import { createReplyRelay } from './relay.js';
 
 export function createDiscordBot({ config, manager, notifier, whatsapp }) {
   // GuildVoiceStates is not privileged: it only needs to be declared here, not in the developer portal.
@@ -44,22 +45,10 @@ export function createDiscordBot({ config, manager, notifier, whatsapp }) {
   }
 
   /** Posts a WhatsApp reply to one of our notices as a reply to the squad's Discord message. */
-  async function relayWhatsAppReply({ quotedId, text, senderName }) {
-    const target = notifier.findNotice(quotedId);
-    if (!target?.channelId || !client.isReady()) return;
-    try {
-      const channel = await client.channels.fetch(target.channelId);
-      if (!channel?.isSendable()) return;
-      const body = text.length > 1500 ? `${text.slice(0, 1500)}…` : text;
-      await channel.send({
-        content: `💬 **${escapeMarkdown(senderName)}** (WhatsApp): ${escapeMarkdown(body)}`,
-        reply: target.messageId ? { messageReference: target.messageId, failIfNotExists: false } : undefined,
-        allowedMentions: { parse: [], repliedUser: false },
-      });
-    } catch (err) {
-      console.error('[discord] No se pudo reenviar la respuesta de WhatsApp:', err.message ?? err);
-    }
-  }
+  const relayWhatsAppReply = createReplyRelay({
+    findNotice: (id) => notifier.findNotice(id),
+    fetchChannel: (id) => (client.isReady() ? client.channels.fetch(id) : null),
+  });
 
   return {
     relayWhatsAppReply,

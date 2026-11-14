@@ -22,3 +22,19 @@ export function extractGroupReply(msg, groupId) {
 
   return { quotedId, text, senderName: msg.pushName?.trim() || 'Alguien' };
 }
+
+/** Handles a Baileys 'messages.upsert' event: forwards replies from live ('notify') messages. Never throws. */
+export function routeGroupReplies({ messages, type }, groupId, onGroupReply, logger = console) {
+  if (type !== 'notify' || !groupId) return;
+  for (const msg of messages ?? []) {
+    try {
+      const reply = extractGroupReply(msg, groupId);
+      if (!reply) continue;
+      Promise.resolve()
+        .then(() => onGroupReply(reply))
+        .catch((err) => logger.error('[whatsapp] Error reenviando respuesta:', err));
+    } catch (err) {
+      logger.error('[whatsapp] Error leyendo un mensaje del grupo:', err);
+    }
+  }
+}

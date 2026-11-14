@@ -11,13 +11,21 @@ const MAX_NOTICES = 500;
  * Each sent notice is remembered for a while (by WhatsApp message id) so that
  * replies quoting it can be routed back to the squad's Discord message.
  */
-export function createSquadNotifier({ manager, whatsapp, logger = console, now = Date.now, noticeTtlMs = NOTICE_TTL_MS }) {
+export function createSquadNotifier({
+  manager,
+  whatsapp,
+  logger = console,
+  now = Date.now,
+  noticeTtlMs = NOTICE_TTL_MS,
+  maxNotices = MAX_NOTICES,
+}) {
   const notices = new Map();
 
   function remember(sent, squad) {
     if (!sent?.id) return;
+    // Map iterates oldest first: drop expired notices and, if still full, the oldest ones.
     for (const [id, notice] of notices) {
-      if (notice.expiresAt <= now() || notices.size >= MAX_NOTICES) notices.delete(id);
+      if (notice.expiresAt <= now() || notices.size >= maxNotices) notices.delete(id);
     }
     notices.set(sent.id, {
       squadId: squad.id,
