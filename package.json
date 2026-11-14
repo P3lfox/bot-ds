@@ -1,0 +1,22 @@
+{
+  "name": "botds",
+  "version": "1.0.0",
+  "description": "Bot de Discord que arma squads y avisa por WhatsApp",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test test/",
+    "start": "node src/index.js",
+    "register": "node src/discord/register.js"
+  },
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "discord.js": "^14.28.1",
+    "dotenv": "^18.0.10",
+    "pino": "^9.14.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
