@@ -49,10 +49,26 @@ export function createHandlers({ manager, notifier, whatsapp }) {
     return notifier.notifyCompleted(squad);
   }
 
+  /** Announces "ready" (minPlayers reached) or "complete" after joins. `warn` reports a failed WhatsApp notice. */
+  async function announceJoinOutcome(squad, { completed, ready }, send, warn) {
+    if (ready) {
+      const ids = [...squad.members.keys()];
+      const left = squad.capacity - ids.length;
+      await send({
+        content: `¡Ya son ${ids.length} para **${squad.game}**! ${ids.map((id) => `<@${id}>`).join(' ')} ya pueden jugar. Queda${left === 1 ? '' : 'n'} ${left} lugar${left === 1 ? '' : 'es'} por si se suma alguien más.`,
+        allowedMentions: { users: ids },
+      });
+    }
+    if (completed) {
+      const result = await announceCompletion(squad, send);
+      if (!result.ok) await warn(`No se pudo avisar por WhatsApp que la squad se completó: ${result.message}`);
+    }
+  }
+
   async function handleSquadCommand(interaction) {
     const typed = interaction.options.getString('juego', true).trim();
     if (!typed) return replyEphemeral(interaction, 'Tenés que indicar un juego.');
-    const { name, capacity } = resolveGame(typed);
+    const { name, capacity, minPlayers } = resolveGame(typed);
 
     const voiceChannel = interaction.member?.voice?.channel ?? null;
     const squad = manager.create({
@@ -61,14 +77,18 @@ export function createHandlers({ manager, notifier, whatsapp }) {
       creatorId: interaction.user.id,
       creatorName: displayName(interaction),
       voiceChannelId: voiceChannel?.id ?? null,
+      minPlayers,
     });
 
     // Everyone already in the creator's voice channel joins automatically.
-    let completed = false;
+    const outcome = { completed: false, ready: false };
     for (const member of voiceChannel?.members.values() ?? []) {
-      if (completed || member.user.bot || member.id === interaction.user.id) continue;
-      completed = manager.join(squad.id, member.id, member.displayName).completed;
+      if (outcome.completed || member.user.bot || member.id === interaction.user.id) continue;
+      const result = manager.join(squad.id, member.id, member.displayName);
+      outcome.completed = result.completed;
+      outcome.ready ||= result.ready;
     }
+    if (outcome.completed) outcome.ready = false;
 
     try {
       const response = await interaction.reply({ ...squadMessagePayload(squad), withResponse: true });
@@ -81,21 +101,13 @@ export function createHandlers({ manager, notifier, whatsapp }) {
       throw err;
     }
 
-    if (completed) {
-      const result = await announceCompletion(squad, (payload) => interaction.followUp(payload));
-      if (!result.ok) await replyEphemeral(interaction, `No se pudo avisar por WhatsApp que la squad se completó: ${result.message}`);
-    }
+    await announceJoinOutcome(squad, outcome, (payload) => interaction.followUp(payload), (text) => replyEphemeral(interaction, text));
   }
 
   async function handleJoin(interaction, squadId) {
-    const { squad, completed } = manager.join(squadId, interaction.user.id, displayName(interaction));
-    await interaction.update(squadMessagePayload(squad));
-    if (!completed) return;
-
-    const result = await announceCompletion(squad, (payload) => interaction.followUp(payload));
-    if (!result.ok) {
-      await replyEphemeral(interaction, `No se pudo avisar por WhatsApp que la squad se completó: ${result.message}`);
-    }
+    const outcome = manager.join(squadId, interaction.user.id, displayName(interaction));
+    await interaction.update(squadMessagePayload(outcome.squad));
+    await announceJoinOutcome(outcome.squad, outcome, (payload) => interaction.followUp(payload), (text) => replyEphemeral(interaction, text));
   }
 
   /** Whoever enters the voice channel of an open squad joins it. Leaving the channel does not remove anyone. */
@@ -108,13 +120,12 @@ export function createHandlers({ manager, notifier, whatsapp }) {
       const squad = manager.findOpenByVoiceChannel(channelId);
       if (!squad || squad.members.has(member.id)) return;
 
-      const { completed } = manager.join(squad.id, member.id, member.displayName);
+      const outcome = manager.join(squad.id, member.id, member.displayName);
       await editSquadMessage(newState.guild.channels, squad);
-      if (!completed) return;
+      if (!outcome.completed && !outcome.ready) return;
 
       const textChannel = await newState.guild.channels.fetch(squad.channelId);
-      const result = await announceCompletion(squad, (payload) => textChannel.send(payload));
-      if (!result.ok) console.warn(`[squads] No se pudo avisar por WhatsApp que la squad de ${squad.game} se completó: ${result.message}`);
+      await announceJoinOutcome(squad, outcome, (payload) => textChannel.send(payload), (text) => console.warn(`[squads] ${squad.game}: ${text}`));
     } catch (err) {
       if (err instanceof SquadError) return;
       console.error('[discord] Error manejando el cambio de canal de voz:', err);

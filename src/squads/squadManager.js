@@ -40,14 +40,19 @@ export class SquadManager {
     this.logger = logger;
   }
 
-  create({ game, capacity, creatorId, creatorName, voiceChannelId = null }) {
-    if (!Number.isInteger(capacity) || capacity < 2) {
+  create({ game, capacity, creatorId, creatorName, voiceChannelId = null, minPlayers = null }) {
+    if (capacity !== null && (!Number.isInteger(capacity) || capacity < 2)) {
       throw new SquadError('INVALID_CAPACITY', 'El cupo tiene que ser un número entero mayor o igual a 2.');
+    }
+    if (minPlayers !== null && (capacity === null || minPlayers < 2 || minPlayers >= capacity)) {
+      throw new SquadError('INVALID_MIN_PLAYERS', 'El mínimo de jugadores tiene que ser al menos 2 y menor que el cupo.');
     }
     const squad = {
       id: randomUUID(),
       game,
       capacity,
+      minPlayers,
+      readyAnnounced: false,
       creatorId,
       members: new Map([[creatorId, creatorName]]),
       status: SquadStatus.OPEN,
@@ -99,9 +104,12 @@ export class SquadManager {
       throw new SquadError('ALREADY_JOINED', 'Ya estás anotado en esta squad.');
     }
     squad.members.set(userId, name);
-    const completed = squad.members.size >= squad.capacity;
+    const completed = squad.capacity !== null && squad.members.size >= squad.capacity;
     if (completed) this.#finish(squad, SquadStatus.FULL);
-    return { squad, completed };
+    // "ready" fires once when the squad reaches minPlayers (can play) but is not full yet.
+    const ready = !completed && this.isReady(squad) && !squad.readyAnnounced;
+    if (ready) squad.readyAnnounced = true;
+    return { squad, completed, ready };
   }
 
   leave(id, userId) {
@@ -113,6 +121,7 @@ export class SquadManager {
       throw new SquadError('NOT_JOINED', 'No estás anotado en esta squad.');
     }
     squad.members.delete(userId);
+    if (!this.isReady(squad)) squad.readyAnnounced = false;
     return squad;
   }
 
@@ -125,7 +134,14 @@ export class SquadManager {
     return squad;
   }
 
+  /** True when the squad has minPlayers and reached it (it can already play). */
+  isReady(squad) {
+    return squad.minPlayers !== null && squad.members.size >= squad.minPlayers;
+  }
+
+  /** Players still needed, or null for open squads (no capacity). */
   missing(squad) {
+    if (squad.capacity === null) return null;
     return Math.max(0, squad.capacity - squad.members.size);
   }
 

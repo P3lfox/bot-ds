@@ -27,12 +27,19 @@ const STATUS_VIEW = {
   [SquadStatus.CANCELLED]: { color: 0xed4245, label: 'Cancelada' },
 };
 
+const READY_VIEW = { color: 0xfee75c, label: 'Lista para jugar' };
+
 export function buildSquadEmbed(squad) {
-  const view = STATUS_VIEW[squad.status];
+  const ready = squad.status === SquadStatus.OPEN && squad.minPlayers != null && squad.members.size >= squad.minPlayers;
+  const view = ready ? READY_VIEW : STATUS_VIEW[squad.status];
   const ids = [...squad.members.keys()];
-  const slots = Array.from({ length: squad.capacity }, (_, i) => `${i + 1}. ${ids[i] ? `<@${ids[i]}>` : '*libre*'}`);
-  const missing = String(Math.max(0, squad.capacity - squad.members.size));
-  const slotsTitle = `Cupos (${ids.length}/${squad.capacity})`;
+  const open = squad.capacity === null;
+  const slots = open
+    ? ids.map((id, i) => `${i + 1}. <@${id}>`)
+    : Array.from({ length: squad.capacity }, (_, i) => `${i + 1}. ${ids[i] ? `<@${ids[i]}>` : '*libre*'}`);
+  const missing = open ? 'Sin límite' : String(Math.max(0, squad.capacity - squad.members.size));
+  const minHint = !open && squad.minPlayers != null ? ` · se juega desde ${squad.minPlayers}` : '';
+  const slotsTitle = open ? `Jugadores (${ids.length})` : `Cupos (${ids.length}/${squad.capacity})${minHint}`;
 
   const embed = new EmbedBuilder()
     .setColor(view.color)

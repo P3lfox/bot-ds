@@ -158,3 +158,29 @@ test('a failing callback does not throw out of the timer', async () => {
   assert.equal(errors.length, 1);
 });
 
+test('open squads (no capacity) never complete and keep auto notify', async () => {
+  const { manager, clock, calls } = setup();
+  const squad = manager.create({ ...base, game: 'Minecraft', capacity: null });
+  for (let i = 2; i <= 30; i++) assert.equal(manager.join(squad.id, `u${i}`, `P${i}`).completed, false);
+  assert.equal(manager.missing(squad), null);
+  await clock.advance(5 * 60_000);
+  assert.deepEqual(calls.autoNotify, [squad]);
+});
+
+test('squad with minPlayers reports ready once when reaching the minimum, then completes at capacity', () => {
+  const { manager } = setup();
+  const squad = manager.create({ ...base, game: 'Rocket League', capacity: 3, minPlayers: 2 });
+  assert.deepEqual(manager.join(squad.id, 'u2', 'Beto'), { squad, completed: false, ready: true });
+  assert.equal(manager.isReady(squad), true);
+  manager.leave(squad.id, 'u2');
+  assert.equal(manager.isReady(squad), false);
+  assert.equal(manager.join(squad.id, 'u2', 'Beto').ready, true);
+  assert.deepEqual(manager.join(squad.id, 'u3', 'Caro'), { squad, completed: true, ready: false });
+});
+
+test('squads without minPlayers never report ready', () => {
+  const { manager } = setup();
+  const squad = manager.create(base);
+  assert.equal(manager.join(squad.id, 'u2', 'Beto').ready, false);
+  assert.equal(manager.isReady(squad), false);
+});

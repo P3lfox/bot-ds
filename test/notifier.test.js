@@ -86,3 +86,9 @@ test('notifyCompleted sends a single message per squad', async () => {
   assert.equal(sent.length, 1);
 });
 
+test('open squad notice lists who is playing without a missing count', () => {
+  const manager = makeManager();
+  const squad = manager.create({ game: 'Minecraft', capacity: null, creatorId: 'u1', creatorName: 'Ana' });
+  manager.attachMessage(squad.id, { channelId: 'c', messageId: 'm', url: 'https://discord.com/channels/g/c/m' });
+  assert.equal(buildMissingText(squad), 'Están jugando Minecraft: Ana. Sumate en Discord: https://discord.com/channels/g/c/m');
+});

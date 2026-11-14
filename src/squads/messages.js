@@ -3,6 +3,9 @@ export function memberNames(squad) {
 }
 
 export function buildMissingText(squad) {
+  if (squad.capacity === null) {
+    return `Están jugando ${squad.game}: ${memberNames(squad)}. Sumate en Discord: ${squad.messageUrl ?? ''}`.trim();
+  }
   const missing = Math.max(0, squad.capacity - squad.members.size);
   return `Faltan ${missing} para la squad de ${squad.game}. Están: ${memberNames(squad)}. Sumate en Discord: ${squad.messageUrl ?? ''}`.trim();
 }
