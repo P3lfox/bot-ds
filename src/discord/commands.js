@@ -16,8 +16,8 @@ export const squadCommand = new SlashCommandBuilder()
 
 export const waGroupsCommand = new SlashCommandBuilder()
   .setName('wa-grupos')
-  .setDescription('Lista los grupos de WhatsApp del bot (solo administradores)')
+  .setDescription('Lista los grupos de WhatsApp del bot (requiere Gestionar servidor)')
   .setContexts(InteractionContextType.Guild)
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
 export const commands = [squadCommand, waGroupsCommand];

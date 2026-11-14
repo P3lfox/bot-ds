@@ -108,8 +108,8 @@ export function createHandlers({ manager, notifier, whatsapp }) {
   }
 
   async function handleWaGroups(interaction) {
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return replyEphemeral(interaction, 'Este comando es solo para administradores.');
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      return replyEphemeral(interaction, 'Necesitás el permiso "Gestionar servidor" para usar este comando.');
     }
     await interaction.deferReply({ flags: EPHEMERAL });
     let groups;

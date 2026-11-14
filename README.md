@@ -18,7 +18,7 @@ Bot de Discord que arma squads para jugar con `/squad` y avisa a un grupo de Wha
 | Cupo completo | Menciona a todos, desactiva los botones y manda un único aviso de "squad completa" al grupo. |
 | A los 5 minutos | Si todavía falta gente y no hay cooldown activo, avisa automáticamente por WhatsApp. |
 | A los 30 minutos | Si no se completó, expira y se desactivan los botones. |
-| `/wa-grupos` | Solo administradores. Lista los grupos de WhatsApp del número, con nombre e ID. |
+| `/wa-grupos` | Requiere el permiso "Gestionar servidor". Lista los grupos de WhatsApp del número, con nombre e ID. |
 
 Si WhatsApp no está conectado, el bot responde en Discord que el aviso no se pudo enviar (los avisos automáticos fallidos se informan en el canal de administración). Las desconexiones y el cierre de sesión de WhatsApp también se avisan en ese canal.
 
@@ -86,7 +86,7 @@ La sesión queda guardada en `./sesion_wa` y no hace falta volver a vincular en 
 ## 4. Obtener el ID del grupo
 
 1. Agregá el número del bot al grupo de WhatsApp.
-2. En Discord, como administrador, ejecutá `/wa-grupos`.
+2. En Discord, con un rol que tenga "Gestionar servidor", ejecutá `/wa-grupos`.
 3. Copiá el ID (algo como `120363012345678901@g.us`) en `WA_GROUP_ID` y reiniciá el bot.
 
 ## 5. Desplegar
